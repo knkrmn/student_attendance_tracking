@@ -1,147 +1,119 @@
 import UIKit
-
-class Log_absenceViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
-
-    // MARK: - Properties
-    var tableView: UITableView!
-    private var students: [Student] = []
+import FirebaseFirestore
+class LogAbsenceViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
+    
+    
     private let studentService = StudentService()
+    var students: [Student] = []
+    var logAbsenceView: LogAbsenceView!
     
+    var selectedDate : String  {
+        return getDate()
+    }
     
-    // MARK: - Lifecycle
-    override func viewDidLoad() {
+    override func viewDidLoad(){
         super.viewDidLoad()
         
+        logAbsenceView = LogAbsenceView()
+        view = logAbsenceView
+        
+        logAbsenceView.tableView.delegate = self
+        logAbsenceView.tableView.dataSource = self
+        
+        logAbsenceView.saveButton.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
+        logAbsenceView.datePicker.addTarget(self, action: #selector(datePickerChanged(_:)), for: .valueChanged)
+
         fetchStudents()
-        
-        
     }
     
-    // MARK: - Setup TableView
     
-    private func setupUI() {
-        // DatePicker Container View
-        let datePickerContainer = UIView()
-        datePickerContainer.backgroundColor = .systemGray6
-        datePickerContainer.layer.cornerRadius = 12
-        datePickerContainer.layer.shadowColor = UIColor.black.cgColor
-        datePickerContainer.layer.shadowOpacity = 0.1
-        datePickerContainer.layer.shadowOffset = CGSize(width: 0, height: 2)
-        datePickerContainer.layer.shadowRadius = 4
-        datePickerContainer.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Title Label for DatePicker
-        let datePickerTitle = UILabel()
-        datePickerTitle.text = "Date"
-        datePickerTitle.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        datePickerTitle.textAlignment = .center
-        datePickerTitle.translatesAutoresizingMaskIntoConstraints = false
-        datePickerContainer.addSubview(datePickerTitle)
-        
-        // DatePicker
-        let datePicker = UIDatePicker()
-        datePicker.datePickerMode = .date
-        datePicker.preferredDatePickerStyle = .compact // Takvim görünümü
-        datePicker.translatesAutoresizingMaskIntoConstraints = false
-        datePickerContainer.addSubview(datePicker)
-        
-        // Save Button
-        let saveButton = UIButton(type: .system)
-        saveButton.setTitle("Kaydet", for: .normal)
-        saveButton.backgroundColor = .systemBlue
-        saveButton.setTitleColor(.white, for: .normal)
-        saveButton.layer.cornerRadius = 10
-        saveButton.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
-        saveButton.translatesAutoresizingMaskIntoConstraints = false
-        
-        // TableView
-        tableView = UITableView()
-        tableView.delegate = self
-        tableView.dataSource = self
-        tableView.register(LogCell.self, forCellReuseIdentifier: "CustomCell")
-        tableView.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Container StackView
-        let containerView = UIStackView(arrangedSubviews: [datePickerContainer, tableView, saveButton])
-        containerView.axis = .vertical
-        containerView.spacing = 16
-        containerView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(containerView)
-        
-        // Layout Constraints
-        NSLayoutConstraint.activate([
-            containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor),
-            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            
-            datePickerContainer.heightAnchor.constraint(equalToConstant: 50),
-            
-            datePickerTitle.topAnchor.constraint(equalTo: datePickerContainer.topAnchor, constant: 10),
-            datePickerTitle.leadingAnchor.constraint(equalTo: datePickerContainer.leadingAnchor, constant: 8),
-            datePickerTitle.trailingAnchor.constraint(equalTo: datePickerContainer.trailingAnchor, constant: -8),
-            
-            datePicker.topAnchor.constraint(equalTo: datePickerContainer.topAnchor, constant: 8),
-            datePicker.leadingAnchor.constraint(equalTo: datePickerContainer.leadingAnchor),
-            datePicker.trailingAnchor.constraint(equalTo: datePickerContainer.trailingAnchor),
-            
-            saveButton.heightAnchor.constraint(equalToConstant: 50)
-        ])
-    }
-
-    
-    // Save Button Action
     @objc private func saveButtonTapped() {
-        let selectedDate = datePicker.date
-
-        // Date’i belirli bir formatta yazdırmak için formatter kullanabiliriz
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .none
         
-        let formattedDate = dateFormatter.string(from: selectedDate)
-        print("Seçilen Tarih: \(formattedDate)")
+        for student in students {
+            if student.isChecked {
+                let attendanceRecord = AttendanceRecord(date: selectedDate, is_present: true)
+                studentService.saveAttendanceRecord(for: student, record: attendanceRecord)
+            } else {
+                let attendanceRecord = AttendanceRecord(date: selectedDate, is_present: false)
+                studentService.saveAttendanceRecord(for: student, record: attendanceRecord)
+            }
+        }
     }
-    
-    
-    
-    
+
+
+    private func fetchStudents() {
+        studentService.fetchStudents { [weak self] students in
+            self?.students = students
+            DispatchQueue.main.async {
+                self?.logAbsenceView.tableView.reloadData()
+            }
+        }
+    }
+
+
     // MARK: - UITableViewDataSource Methods
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return students.count
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
         guard let cell = tableView.dequeueReusableCell(withIdentifier: "CustomCell", for: indexPath) as? LogCell else {
             return UITableViewCell()
         }
         
-        let student = students[indexPath.row]
-        //cell.studentID.text = String(student.studentID)
-        cell.name.text = student.name
+        cell.student = students[indexPath.row]
         
+        studentService.getAttendanceByDate(for: selectedDate, student: cell.student) { is_present in
+            if let is_present = is_present {
+                cell.attendanceCheckBox.isOn = is_present
+                cell.student.isChecked = is_present
+            } else {
+                cell.attendanceCheckBox.isOn = true
+                cell.student.isChecked = true
+            }
+        }
+                
+        // UISwitch için target ekleyin
+         cell.attendanceCheckBox.addTarget(self, action: #selector(attendanceSwitchChanged(_:)), for: .valueChanged)
+         cell.attendanceCheckBox.tag = indexPath.row // Tag kullanarak hangi hücreye ait olduğunu tutuyoruz
+
         return cell
     }
-    
-    // MARK: - UITableViewDelegate Methods (isteğe bağlı)
+
+    // MARK: - UITableViewDelegate Methods
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        // Hücre seçildiğinde yapılacak işlemler
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
-    private func fetchStudents() {
-        studentService.fetchStudents { [weak self] students in
-            self?.students = students
-            print("students",students.count)
-            
-            DispatchQueue.main.async {
-                self?.updateUI()
-            }
-        }
+    @objc private func attendanceSwitchChanged(_ sender: UISwitch) {
+        let index = sender.tag
+        students[index].isChecked = sender.isOn
     }
     
-    private func updateUI() {
-        setupUI()
-
+    
+    @objc private func datePickerChanged(_ sender: UIDatePicker) {
+        for (index, student) in students.enumerated() {
+            var mutableStudent = student // Değiştirilebilir bir kopya oluştur
+            studentService.getAttendanceByDate(for: selectedDate, student: mutableStudent) { is_present in
+                if let is_present = is_present {
+                    mutableStudent.isChecked = is_present
+                } else {
+                    mutableStudent.isChecked = true
+                }
+                self.students[index] = mutableStudent // Kopyayı orijinal diziye geri at
+            }
+        }
+        
+        self.logAbsenceView.tableView.reloadData()
+    }
+    
+    
+    func getDate() -> String {
+        let getDate = logAbsenceView.datePicker.date
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        let formattedDate = dateFormatter.string(from: getDate)
+        return formattedDate
     }
 }

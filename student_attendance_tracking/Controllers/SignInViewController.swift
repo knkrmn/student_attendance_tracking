@@ -59,9 +59,9 @@ class SignInViewController: UIViewController {
     }
     
     private func navigateToMain() {
-        let mainTabBarController = MainTabBarController()
-        mainTabBarController.modalPresentationStyle = .fullScreen
-        present(mainTabBarController, animated: true, completion: nil)
+        let loginViewController = LoginViewController()
+        loginViewController.modalPresentationStyle = .fullScreen
+        present(loginViewController, animated: true, completion: nil)
     }
     
     private func showAlert(title: String, message: String) {

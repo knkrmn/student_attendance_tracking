@@ -30,4 +30,6 @@ class SettingsViewController: UIViewController {
             print("Error while logout")
         }
     }
+    
+    
 }

@@ -1,20 +1,39 @@
-//
-//  Scoreboard.swift
-//  student_attendance_tracking
-//
-//  Created by Okan Karaman on 3.11.2024.
-//
 
 import UIKit
 
 class Scoreboard: UIView {
 
-    /*
-    // Only override draw() if you perform custom drawing.
-    // An empty implementation adversely affects performance during animation.
-    override func draw(_ rect: CGRect) {
-        // Drawing code
+    let tableView : UITableView = {
+        let table = UITableView()
+        table.translatesAutoresizingMaskIntoConstraints = false
+        table.register(DashCell.self, forCellReuseIdentifier: "CustomCell")
+        return table
+    }()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupView()
     }
-    */
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+    
+    private func setupView(){
+        addSubview(tableView)
+
+        
+        NSLayoutConstraint.activate([
+            tableView.topAnchor.constraint(equalTo: self.safeAreaLayoutGuide.topAnchor),
+            tableView.leadingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.leadingAnchor),
+            tableView.trailingAnchor.constraint(equalTo: self.safeAreaLayoutGuide.trailingAnchor),
+            tableView.bottomAnchor.constraint(equalTo: self.safeAreaLayoutGuide.bottomAnchor)
+            
+            
+            
+        ])
+        
+      
+    }
 
 }

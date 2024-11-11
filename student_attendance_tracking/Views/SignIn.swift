@@ -13,7 +13,7 @@ class SignInView: UIView {
     }
     
     // MARK: - UI Elements
-    lazy var heading    = CustomLabel(text: "Instagram Clone App")
+    lazy var heading    = CustomLabel(text: "Attendance Trackink")
     lazy var email      = CustomTextField(isSecureText: false, placeHolder: "Email")
     lazy var password   = CustomTextField(isSecureText: true, placeHolder: "Password")
     lazy var signInBtn  = CustomButton(title :"Sign In")
@@ -33,7 +33,6 @@ class SignInView: UIView {
         stackView.spacing = 30
         return stackView
     }()
-    
     
     // MARK: - Setup UI
     private func setupStackView() {

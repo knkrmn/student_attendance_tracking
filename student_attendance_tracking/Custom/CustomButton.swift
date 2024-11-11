@@ -1,10 +1,3 @@
-//
-//  CustomButton.swift
-//  InstaClonewithFireBase
-//
-//  Created by Okan Karaman on 18.10.2024.
-//
-
 import UIKit
 
 class CustomButton: UIButton {
